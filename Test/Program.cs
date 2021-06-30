@@ -1,30 +1,56 @@
-﻿using Microsoft.Crm.Sdk.Messages;
+﻿using System;
 using Microsoft.Xrm.Sdk;
-using Microsoft.Xrm.Sdk.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.ServiceModel;
-using System.ServiceModel.Description;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Xrm.Sdk.Query;
 using Microsoft.Xrm.Tooling.Connector;
 
 namespace Test
 {
-  class Program
+  internal class Program
   {
-    static void Main(string[] args)
+    #region Private
+
+    private static void Main(string[] args)
     {
+      var sEnvironment = "https://frodxtest1.crm4.dynamics.com";
+      var sUser = "api@gregort.onmicrosoft.com";
+      var sPass = "demo123.";
 
+      var connString = $" Url = {sEnvironment};AuthType = OAuth;UserName = {sUser}; Password = {sPass};AppId = 51f81489-12ee-4a9e-aaae-a2591f45987d;RedirectUri = app://58145B91-0C36-4500-8554-080854F2AC97;LoginPrompt=Auto; RequireNewInstance = True";
 
-      var aaa = new CrmServiceClient("admin",CrmServiceClient.MakeSecureString("Gt09602k."),"","Frodxtest1",false,true,null,true);
-      var prxy = aaa.OrganizationServiceProxy;
+      using (var service = new CrmServiceClient(connString))
+      {
+        var query = "<fetch>" +
+                    "<entity name='new_hubspotsynclog' >" +
+                    "<attribute name='new_dateandtimeofsync' />" +
+                    "<link-entity name='contact' from='contactid' to='new_contactid' link-type='inner' >" +
+                    "<attribute name='firstname' />" +
+                    "<attribute name='lastname' />" +
+                    "<attribute name='new_comment' />" +
+                    "<attribute name='new_forhotspotintegration' />" +
+                    "<filter>" +
+                    "<condition attribute='new_forhotspotintegrationname' operator='eq' value='Yes' />" +
+                    "</filter>" +
+                    "</link-entity>" +
+                    "</entity>" +
+                    "</fetch>";
+        var logResult = service.RetrieveMultiple(new FetchExpression(query));
 
-      CrmServiceClient crmSvc = new CrmServiceClient("admin", CrmServiceClient.MakeSecureString("Gt09602k."), "NorthAmerica", "UniqueOrgName", isOffice365: true);
+        foreach (var entity in logResult.Entities)
+        {
+          var firstName = ((AliasedValue) entity.Attributes["contact1.firstname"]).Value;
+          var lastName = ((AliasedValue) entity.Attributes["contact1.lastname"]).Value;
+          var comment = ((AliasedValue) entity.Attributes["contact1.new_comment"]).Value;
+          var integration = ((AliasedValue) entity.Attributes["contact1.new_forhotspotintegration"]).Value;
+          var dateAndTime = entity.Attributes["new_dateandtimeofsync"];
+          Console.WriteLine($"{firstName} {lastName} - {comment} - {integration} - {dateAndTime}");
+        }
+      }
 
-      
+      Console.WriteLine("-------- end of list ---------");
+      Console.WriteLine("Press ENTER to finish");
+      Console.ReadLine();
     }
+
+    #endregion
   }
 }
